@@ -13,13 +13,9 @@ with open("config.yaml", "r") as f:
 
 def converge(a: int, b: int, step: Union[int, float]) -> int:
     if a > b:
-        if b == 0:
-            b = a - 1
-        return int(max(0, a - b / step))
+        return int(max(b, a - max(1, abs(a - b) / step)))
     elif a < b:
-        if b == 0:
-            b = a + 1
-        return int(min(255, a + b / step))
+        return int(min(b, a + max(1, abs(b - a) / step)))
     return a
 
 
@@ -33,7 +29,7 @@ def converge_color(
 
 def change_frequency(
     samples: np.ndarray, target_freq: float, base_freq: float
-):
+) -> np.ndarray:
     semitones = 12 * np.log2(target_freq / base_freq)
     factor = 2 ** (semitones / 12)  # equivalent to target_freq / base_freq
     arr = np.array(
@@ -44,7 +40,7 @@ def change_frequency(
 
 
 class Ball:
-    def __init__(self, radius: int, position: tuple[int, int], direction: int, note: np.ndarray) -> None:
+    def __init__(self, radius: int, position: tuple[int, int], direction: int, note: np.ndarray, image: pygame.Surface) -> None:
         self.radius = radius
         self.position = position
         self.direction = direction
@@ -53,6 +49,7 @@ class Ball:
         self.highlight_frames = CONFIG["ball"]["highlight_frames"]
         self.note = note
         self.draw_color = self.color
+        self.image = pygame.transform.scale(image, (radius*2, radius*2))
         self.highlighted = False
 
     def start_highlight(self) -> None:
@@ -67,11 +64,14 @@ class Ball:
         if self.draw_color == self.color:
             self.highlighted = False
 
-    def play_note(self):
+    def play_note(self) -> None:
         self.channel.play(self.note)
 
-    def draw(self, display_surf):
-        pygame.draw.circle(display_surf, self.draw_color, self.position, self.radius)
+    def draw(self, display_surf: pygame.Surface) -> None:
+        center = tuple(pos + self.radius for pos in self.position)
+        if self.highlighted:
+            pygame.draw.circle(display_surf, self.draw_color, center, self.radius)
+        display_surf.blit(self.image, self.position)
 
 
 class App:
@@ -100,6 +100,7 @@ class App:
         self.base_duration = CONFIG["rhythm"]["duration"] * 1000
         self.ball_radius = CONFIG["ball"]["radius"]
         self.ball_margin = CONFIG["ball"]["margin"]
+        self.ball_image = pygame.image.load(CONFIG["ball"]["image"]).convert_alpha()
         self.balls = [
             Ball(
                 radius=self.ball_radius,
@@ -111,7 +112,8 @@ class App:
                         freq,
                         CONFIG["rhythm"]["base_frequency"],
                     )
-                )
+                ),
+                image=self.ball_image,
             )
             for freq in CONFIG["rhythm"]["notes"]
         ]

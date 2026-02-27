@@ -1,11 +1,11 @@
 window:
   size:
     - 480
-    - 640
+    - 854
   background_color:
-    - 0
-    - 0
-    - 32
+    - 4
+    - 4
+    - 16
     - 255
   borderless: false
 ball:
@@ -13,7 +13,7 @@ ball:
     - 154
     - 190
     - 170
-    - 255
+    - 0
   highlight_color:
     - 64
     - 255
@@ -21,7 +21,8 @@ ball:
     - 255
   radius: 10
   margin: 5
-  highlight_frames: 20
+  highlight_frames: 10
+  image: frog_transparent.png
 rhythm:
   base_frequency: 220
   notes: # frequencies in Hz
