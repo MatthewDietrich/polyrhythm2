@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -10,14 +11,22 @@ MAJOR = 2, 2, 1, 2, 2, 2, 1
 MINOR = 2, 1, 2, 2, 1, 2, 2
 SCALES = MAJOR, MINOR
 BASE_FREQUENCY = 440.0
-BASE_SOUND = "low_a_pluck.wav"
 MIN_BALL_RADIUS = 10
 MAX_BALL_RADIUS = 30
 MIN_DURATION = 250
 MAX_DURATION = 1000
 WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 854
-BALL_IMAGE = "frog_transparent.png"
+IMAGES_DIR = Path("images")
+SOUNDS_DIR = Path("sounds")
+
+
+def random_image() -> Path:
+    return random.choice(list(IMAGES_DIR.iterdir()))
+
+
+def random_sound() -> Path:
+    return random.choice(list(SOUNDS_DIR.iterdir()))
 
 
 def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[float]:
@@ -109,7 +118,9 @@ class App:
     def __init__(self, frequencies: list[float]) -> None:
         pygame.init
         pygame.mixer.init(frequency=44100, size=-16, channels=32)
-        self.base_sndarray = pygame.sndarray.array(pygame.mixer.Sound(file=BASE_SOUND))
+        self.base_sndarray = pygame.sndarray.array(
+            pygame.mixer.Sound(file=random_sound())
+        )
         self.clock = pygame.time.Clock()
         self.start_time = self.clock.get_time()
         self.prev_draw_time = self.start_time
@@ -122,7 +133,7 @@ class App:
         self.base_duration = random.randrange(250, 1000)
         self.ball_radius = random.randrange(MIN_BALL_RADIUS, MAX_BALL_RADIUS)
         self.ball_margin = self.ball_radius // 2
-        self.ball_image = pygame.image.load(BALL_IMAGE).convert_alpha()
+        self.ball_image = pygame.image.load(random_image()).convert_alpha()
         self.balls = [
             Ball(
                 radius=self.ball_radius,
