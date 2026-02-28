@@ -143,8 +143,7 @@ class App:
         for i, ball in enumerate(self.balls):
             ball.channel = pygame.mixer.Channel(i)
         self.rhythm_margin = (
-            self.window_size[1]
-            - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
+            WINDOW_HEIGHT - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
         ) / 2
         self.elapsed = 0
 
@@ -157,15 +156,16 @@ class App:
         dt = self.clock.get_time()
         self.elapsed += dt
         self.display_surf.fill(self.background_color)
+        travel_width = WINDOW_WIDTH - self.ball_radius * 2
         for i, ball in enumerate(self.balls):
             interval = (i * 0.5 + 2) * self.base_duration
-            x = int((self.elapsed % interval) / interval * self.window_size[0])
+            x = int((self.elapsed % interval) / interval * travel_width)
             y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
             prev_direction = ball.direction
             ball.direction = 1
             if int(self.elapsed / interval) % 2:
                 ball.direction = -1
-                x = self.window_size[0] - x
+                x = travel_width - x
             if prev_direction != ball.direction:
                 ball.start_highlight()
                 ball.play_note()
