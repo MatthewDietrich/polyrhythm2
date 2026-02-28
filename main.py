@@ -27,7 +27,7 @@ def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[floa
     for _ in range(octaves):
         for interval in intervals:
             semitones += interval
-            frequencies.append(round(start * (SEMITONE ** semitones), 2))
+            frequencies.append(round(start * (SEMITONE**semitones), 2))
     return frequencies
 
 
@@ -58,12 +58,20 @@ def change_frequency(
     ).copy()
     return arr
 
+
 def random_color() -> tuple[int, int, int, int]:
     return tuple(random.randrange(0, 256) for _ in range(4))
 
 
 class Ball:
-    def __init__(self, radius: int, position: tuple[int, int], direction: int, note: np.ndarray, image: pygame.Surface) -> None:
+    def __init__(
+        self,
+        radius: int,
+        position: tuple[int, int],
+        direction: int,
+        note: np.ndarray,
+        image: pygame.Surface,
+    ) -> None:
         self.radius = radius
         self.position = position
         self.direction = direction
@@ -72,7 +80,7 @@ class Ball:
         self.highlight_frames = 10
         self.note = note
         self.draw_color = self.color
-        self.image = pygame.transform.scale(image, (radius*2, radius*2))
+        self.image = pygame.transform.scale(image, (radius * 2, radius * 2))
         self.highlighted = False
 
     def start_highlight(self) -> None:
@@ -100,14 +108,8 @@ class Ball:
 class App:
     def __init__(self, frequencies: list[float]) -> None:
         pygame.init
-        pygame.mixer.init(
-            frequency=44100,
-            size=-16,
-            channels=32
-        )
-        self.base_sndarray = pygame.sndarray.array(
-            pygame.mixer.Sound(file=BASE_SOUND)
-        )
+        pygame.mixer.init(frequency=44100, size=-16, channels=32)
+        self.base_sndarray = pygame.sndarray.array(pygame.mixer.Sound(file=BASE_SOUND))
         self.clock = pygame.time.Clock()
         self.start_time = self.clock.get_time()
         self.prev_draw_time = self.start_time
