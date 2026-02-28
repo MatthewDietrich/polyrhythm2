@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Union
 
 import numpy as np
@@ -9,6 +10,26 @@ from scipy import signal
 
 with open("config.yaml", "r") as f:
     CONFIG = yaml.safe_load(f)
+BALL = CONFIG["ball"]
+WINDOW = CONFIG["window"]
+
+MAJOR = 2, 2, 1, 2, 2, 2, 1
+MINOR = 2, 1, 2, 2, 1, 2, 2
+SCALES = MAJOR, MINOR
+
+BASE_FREQUENCY = 440.0
+BASE_SOUND = "low_a_pluck.wav"
+
+
+def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[float]:
+    SEMITONE = 2 ** (1 / 12)
+    frequencies = [start]
+    semitones = 0
+    for _ in range(octaves):
+        for interval in intervals:
+            semitones += interval
+            frequencies.append(round(start * (SEMITONE ** semitones), 2))
+    return frequencies
 
 
 def converge(a: int, b: int, step: Union[int, float]) -> int:
@@ -31,7 +52,7 @@ def change_frequency(
     samples: np.ndarray, target_freq: float, base_freq: float
 ) -> np.ndarray:
     semitones = 12 * np.log2(target_freq / base_freq)
-    factor = 2 ** (semitones / 12)  # equivalent to target_freq / base_freq
+    factor = 2 ** (semitones / 12)
     arr = np.array(
         signal.resample(samples, int(len(samples) / factor)),
         dtype="int16",
@@ -44,9 +65,9 @@ class Ball:
         self.radius = radius
         self.position = position
         self.direction = direction
-        self.color = tuple(CONFIG["ball"]["color"])
-        self.highlight_color = tuple(CONFIG["ball"]["highlight_color"])
-        self.highlight_frames = CONFIG["ball"]["highlight_frames"]
+        self.color = tuple(BALL["color"])
+        self.highlight_color = tuple(BALL["highlight_color"])
+        self.highlight_frames = BALL["highlight_frames"]
         self.note = note
         self.draw_color = self.color
         self.image = pygame.transform.scale(image, (radius*2, radius*2))
@@ -75,7 +96,7 @@ class Ball:
 
 
 class App:
-    def __init__(self) -> None:
+    def __init__(self, frequencies: list[float]) -> None:
         pygame.init
         pygame.mixer.init(
             frequency=44100,
@@ -83,24 +104,24 @@ class App:
             channels=32
         )
         self.base_sndarray = pygame.sndarray.array(
-            pygame.mixer.Sound(file=CONFIG["rhythm"]["base_sound"])
+            pygame.mixer.Sound(file=BASE_SOUND)
         )
         self.clock = pygame.time.Clock()
         self.start_time = self.clock.get_time()
         self.prev_draw_time = self.start_time
-        self.window_size = CONFIG["window"]["size"]
-        self.background_color = CONFIG["window"]["background_color"]
+        self.window_size = WINDOW["size"]
+        self.background_color = WINDOW["background_color"]
         borderless_flag = 0
-        if CONFIG["window"]["borderless"]:
+        if WINDOW["borderless"]:
             borderless_flag = pygame.NOFRAME
             os.environ["SDL_VIDEO_WINDOW_POS"] = "0.0"
         self.display_surf = pygame.display.set_mode(
             self.window_size, pygame.HWSURFACE | pygame.DOUBLEBUF | borderless_flag
         )
-        self.base_duration = CONFIG["rhythm"]["duration"] * 1000
-        self.ball_radius = CONFIG["ball"]["radius"]
-        self.ball_margin = CONFIG["ball"]["margin"]
-        self.ball_image = pygame.image.load(CONFIG["ball"]["image"]).convert_alpha()
+        self.base_duration = random.randrange(250, 1000)
+        self.ball_radius = BALL["radius"]
+        self.ball_margin = BALL["margin"]
+        self.ball_image = pygame.image.load(BALL["image"]).convert_alpha()
         self.balls = [
             Ball(
                 radius=self.ball_radius,
@@ -110,12 +131,12 @@ class App:
                     change_frequency(
                         self.base_sndarray,
                         freq,
-                        CONFIG["rhythm"]["base_frequency"],
+                        BASE_FREQUENCY,
                     )
                 ),
                 image=self.ball_image,
             )
-            for freq in CONFIG["rhythm"]["notes"]
+            for freq in frequencies
         ]
         pygame.mixer.set_num_channels(len(self.balls))
         for i, ball in enumerate(self.balls):
@@ -141,7 +162,6 @@ class App:
             y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
             prev_direction = ball.direction
             ball.direction = 1
-
             if int(self.elapsed / interval) % 2:
                 ball.direction = -1
                 x = self.window_size[0] - x
@@ -149,11 +169,10 @@ class App:
                 ball.start_highlight()
                 ball.play_note()
             ball.next_highlight()
-
             ball.position = (x, y)
             ball.draw(self.display_surf)
 
-    def run(self):
+    def run(self) -> None:
         self.running = True
         while self.running:
             self.clock.tick(60)
@@ -165,8 +184,12 @@ class App:
         self._exit()
 
 
-def main():
-    App().run()
+def main() -> None:
+    scale = random.choice(SCALES)
+    starting_frequency = random.choice(scale_frequencies(scale, 1, BASE_FREQUENCY))
+    frequencies = scale_frequencies(scale, random.randrange(1, 4), starting_frequency)
+    frequencies = random.sample(frequencies, random.randrange(5, len(frequencies)))
+    App(frequencies).run()
 
 
 if __name__ == "__main__":

@@ -23,25 +23,3 @@ ball:
   margin: 5
   highlight_frames: 10
   image: frog_transparent.png
-rhythm:
-  base_frequency: 220
-  notes: # frequencies in Hz
-    - 220.00   # A3
-    - 277.18   # C#4
-    - 293.66   # D4
-    - 329.63   # E4
-    - 440.00   # A4
-    - 554.37   # C#5
-    - 587.33   # D5
-    - 659.25   # E5
-    - 880.00   # A5
-    - 1108.73  # C#6
-    - 1174.66  # D6
-    - 1318.51  # E6
-    - 1760.00  # A6
-    - 2217.46  # C#7
-    - 2349.32  # D7
-    - 2637.02  # E7
-    - 3520.00  # A7
-  duration: 0.5 # time in seconds for first note to oscillate once
-  base_sound: low_a_pluck.wav
