@@ -1,24 +1,23 @@
-import os
 import random
 from typing import Union
 
 import numpy as np
 import pygame
 import pygame.locals
-import yaml
 from scipy import signal
-
-with open("config.yaml", "r") as f:
-    CONFIG = yaml.safe_load(f)
-BALL = CONFIG["ball"]
-WINDOW = CONFIG["window"]
 
 MAJOR = 2, 2, 1, 2, 2, 2, 1
 MINOR = 2, 1, 2, 2, 1, 2, 2
 SCALES = MAJOR, MINOR
-
 BASE_FREQUENCY = 440.0
 BASE_SOUND = "low_a_pluck.wav"
+MIN_BALL_RADIUS = 10
+MAX_BALL_RADIUS = 30
+MIN_DURATION = 250
+MAX_DURATION = 1000
+WINDOW_WIDTH = 480
+WINDOW_HEIGHT = 854
+BALL_IMAGE = "frog_transparent.png"
 
 
 def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[float]:
@@ -59,15 +58,18 @@ def change_frequency(
     ).copy()
     return arr
 
+def random_color() -> tuple[int, int, int, int]:
+    return tuple(random.randrange(0, 256) for _ in range(4))
+
 
 class Ball:
     def __init__(self, radius: int, position: tuple[int, int], direction: int, note: np.ndarray, image: pygame.Surface) -> None:
         self.radius = radius
         self.position = position
         self.direction = direction
-        self.color = tuple(BALL["color"])
-        self.highlight_color = tuple(BALL["highlight_color"])
-        self.highlight_frames = BALL["highlight_frames"]
+        self.color = random_color()
+        self.highlight_color = random_color()
+        self.highlight_frames = 10
         self.note = note
         self.draw_color = self.color
         self.image = pygame.transform.scale(image, (radius*2, radius*2))
@@ -109,19 +111,16 @@ class App:
         self.clock = pygame.time.Clock()
         self.start_time = self.clock.get_time()
         self.prev_draw_time = self.start_time
-        self.window_size = WINDOW["size"]
-        self.background_color = WINDOW["background_color"]
+        self.window_size = WINDOW_WIDTH, WINDOW_HEIGHT
+        self.background_color = random_color()
         borderless_flag = 0
-        if WINDOW["borderless"]:
-            borderless_flag = pygame.NOFRAME
-            os.environ["SDL_VIDEO_WINDOW_POS"] = "0.0"
         self.display_surf = pygame.display.set_mode(
             self.window_size, pygame.HWSURFACE | pygame.DOUBLEBUF | borderless_flag
         )
         self.base_duration = random.randrange(250, 1000)
-        self.ball_radius = BALL["radius"]
-        self.ball_margin = BALL["margin"]
-        self.ball_image = pygame.image.load(BALL["image"]).convert_alpha()
+        self.ball_radius = random.randrange(MIN_BALL_RADIUS, MAX_BALL_RADIUS)
+        self.ball_margin = self.ball_radius // 2
+        self.ball_image = pygame.image.load(BALL_IMAGE).convert_alpha()
         self.balls = [
             Ball(
                 radius=self.ball_radius,

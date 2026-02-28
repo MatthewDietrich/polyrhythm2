@@ -7,6 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.4.2",
     "pygame>=2.6.1",
-    "pyyaml>=6.0.3",
     "scipy>=1.17.1",
 ]
