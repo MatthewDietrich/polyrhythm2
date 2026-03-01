@@ -11,6 +11,7 @@ MAJOR = 2, 2, 1, 2, 2, 2, 1
 MINOR = 2, 1, 2, 2, 1, 2, 2
 SCALES = MAJOR, MINOR
 BASE_FREQUENCY = 440.0
+SEMITONE = 2 ** (1 / 12)
 MIN_BALL_RADIUS = 10
 MAX_BALL_RADIUS = 30
 MIN_DURATION = 250
@@ -30,7 +31,6 @@ def random_sound() -> Path:
 
 
 def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[float]:
-    SEMITONE = 2 ** (1 / 12)
     frequencies = [start]
     semitones = 0
     for _ in range(octaves):
@@ -53,7 +53,12 @@ def converge_color(
     b: tuple[int, int, int, int],
     step: Union[int, float],
 ) -> tuple[int, int, int, int]:
-    return tuple(converge(a[i], b[i], step) for i in range(len(a)))
+    return (
+        converge(a[0], b[0], step),
+        converge(a[1], b[1], step),
+        converge(a[2], b[2], step),
+        converge(a[3], b[3], step),
+    )
 
 
 def change_frequency(
@@ -69,7 +74,12 @@ def change_frequency(
 
 
 def random_color() -> tuple[int, int, int, int]:
-    return tuple(random.randrange(0, 256) for _ in range(4))
+    return (
+        random.randrange(0, 256),
+        random.randrange(0, 256),
+        random.randrange(0, 256),
+        random.randrange(0, 256),
+    )
 
 
 class Ball:
@@ -78,7 +88,7 @@ class Ball:
         radius: int,
         position: tuple[int, int],
         direction: int,
-        note: np.ndarray,
+        note: pygame.mixer.Sound,
         image: pygame.Surface,
     ) -> None:
         self.radius = radius
@@ -91,6 +101,7 @@ class Ball:
         self.draw_color = self.color
         self.image = pygame.transform.scale(image, (radius * 2, radius * 2))
         self.highlighted = False
+        self.channel = None
 
     def start_highlight(self) -> None:
         self.highlighted = True
@@ -105,7 +116,8 @@ class Ball:
             self.highlighted = False
 
     def play_note(self) -> None:
-        self.channel.play(self.note)
+        if self.channel is not None:
+            self.channel.play(self.note)
 
     def draw(self, display_surf: pygame.Surface) -> None:
         center = tuple(pos + self.radius for pos in self.position)
@@ -116,21 +128,18 @@ class Ball:
 
 class App:
     def __init__(self, frequencies: list[float]) -> None:
-        pygame.init
+        pygame.init()
         pygame.mixer.init(frequency=44100, size=-16, channels=32)
         self.base_sndarray = pygame.sndarray.array(
             pygame.mixer.Sound(file=random_sound())
         )
         self.clock = pygame.time.Clock()
-        self.start_time = self.clock.get_time()
-        self.prev_draw_time = self.start_time
         self.window_size = WINDOW_WIDTH, WINDOW_HEIGHT
         self.background_color = random_color()
-        borderless_flag = 0
         self.display_surf = pygame.display.set_mode(
-            self.window_size, pygame.HWSURFACE | pygame.DOUBLEBUF | borderless_flag
+            self.window_size, pygame.HWSURFACE | pygame.DOUBLEBUF
         )
-        self.base_duration = random.randrange(250, 1000)
+        self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_radius = random.randrange(MIN_BALL_RADIUS, MAX_BALL_RADIUS)
         self.ball_margin = self.ball_radius // 2
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
@@ -156,6 +165,7 @@ class App:
         self.rhythm_margin = (
             WINDOW_HEIGHT - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
         ) / 2
+        self.travel_width = WINDOW_WIDTH - self.ball_radius * 2
         self.elapsed = 0
 
     def _exit(self) -> None:
@@ -167,16 +177,16 @@ class App:
         dt = self.clock.get_time()
         self.elapsed += dt
         self.display_surf.fill(self.background_color)
-        travel_width = WINDOW_WIDTH - self.ball_radius * 2
+
         for i, ball in enumerate(self.balls):
-            interval = (i * 0.5 + 2) * self.base_duration
-            x = int((self.elapsed % interval) / interval * travel_width)
+            interval = (i / 2 + 2) * self.base_duration
+            x = int((self.elapsed % interval) / interval * self.travel_width)
             y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
             prev_direction = ball.direction
             ball.direction = 1
             if int(self.elapsed / interval) % 2:
                 ball.direction = -1
-                x = travel_width - x
+                x = self.travel_width - x
             if prev_direction != ball.direction:
                 ball.start_highlight()
                 ball.play_note()
