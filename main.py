@@ -198,7 +198,7 @@ class App:
 
 def main() -> None:
     scale = random.choice(SCALES)
-    starting_frequency = random.choice(scale_frequencies(scale, 1, BASE_FREQUENCY))
+    starting_frequency = random.choice(scale_frequencies(scale, 2, BASE_FREQUENCY / 2))
     frequencies = scale_frequencies(scale, random.randrange(1, 4), starting_frequency)
     frequencies = random.sample(frequencies, random.randrange(5, len(frequencies)))
     App(frequencies).run()
