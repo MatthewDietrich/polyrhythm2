@@ -12,7 +12,6 @@ MINOR = 2, 1, 2, 2, 1, 2, 2
 SCALES = MAJOR, MINOR
 BASE_FREQUENCY = 440.0
 SEMITONE = 2 ** (1 / 12)
-MIN_BALL_RADIUS = 10
 MAX_BALL_RADIUS = 30
 MIN_DURATION = 250
 MAX_DURATION = 1000
@@ -140,9 +139,9 @@ class App:
             self.window_size, pygame.HWSURFACE | pygame.DOUBLEBUF
         )
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
-        self.ball_radius = random.randrange(MIN_BALL_RADIUS, MAX_BALL_RADIUS)
-        self.ball_margin = self.ball_radius // 2
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
+        self.ball_radius = min(WINDOW_HEIGHT / len(frequencies), MAX_BALL_RADIUS)
+        self.ball_margin = self.ball_radius // 2
         self.balls = [
             Ball(
                 radius=self.ball_radius,
