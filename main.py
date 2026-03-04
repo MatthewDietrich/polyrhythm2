@@ -142,9 +142,13 @@ class App:
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
         self.transpose = bool(random.getrandbits(1))
         if self.transpose:
-            self.ball_radius = min(WINDOW_WIDTH / len(frequencies), MAX_BALL_RADIUS)
+            self.ball_radius = min(
+                WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS
+            )
         else:
-            self.ball_radius = min(WINDOW_HEIGHT / len(frequencies), MAX_BALL_RADIUS)
+            self.ball_radius = min(
+                WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS
+            )
         self.ball_margin = self.ball_radius // 2
         self.balls = [
             Ball(
@@ -165,12 +169,18 @@ class App:
         pygame.mixer.set_num_channels(len(self.balls))
         for i, ball in enumerate(self.balls):
             ball.channel = pygame.mixer.Channel(i)
-        self.rhythm_margin = (
-            WINDOW_HEIGHT - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
-        ) / 2
+
         if self.transpose:
+            self.rhythm_margin = (
+                WINDOW_WIDTH
+                - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
+            ) / 2
             self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
         else:
+            self.rhythm_margin = (
+                WINDOW_HEIGHT
+                - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
+            ) / 2
             self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
         self.elapsed = 0
 
@@ -189,9 +199,7 @@ class App:
             prev_direction = ball.direction
             ball.direction = 1
             if self.transpose:
-                x = (i + 1) * (
-                    2 * self.ball_radius + self.ball_margin
-                ) + self.rhythm_margin
+                x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
                 y = int((self.elapsed % interval) / interval * self.travel_distance)
                 if int(self.elapsed / interval) % 2:
                     ball.direction = -1
