@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.4.2",
-    "obsws-python>=1.8.0",
     "pygame>=2.6.1",
     "scipy>=1.17.1",
 ]

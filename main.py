@@ -140,7 +140,11 @@ class App:
         )
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
-        self.ball_radius = min(WINDOW_HEIGHT / len(frequencies), MAX_BALL_RADIUS)
+        self.transpose = bool(random.getrandbits(1))
+        if self.transpose:
+            self.ball_radius = min(WINDOW_WIDTH / len(frequencies), MAX_BALL_RADIUS)
+        else:
+            self.ball_radius = min(WINDOW_HEIGHT / len(frequencies), MAX_BALL_RADIUS)
         self.ball_margin = self.ball_radius // 2
         self.balls = [
             Ball(
@@ -164,7 +168,10 @@ class App:
         self.rhythm_margin = (
             WINDOW_HEIGHT - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
         ) / 2
-        self.travel_width = WINDOW_WIDTH - self.ball_radius * 2
+        if self.transpose:
+            self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
+        else:
+            self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
         self.elapsed = 0
 
     def _exit(self) -> None:
@@ -179,13 +186,24 @@ class App:
 
         for i, ball in enumerate(self.balls):
             interval = (i / 2 + 2) * self.base_duration
-            x = int((self.elapsed % interval) / interval * self.travel_width)
-            y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
             prev_direction = ball.direction
             ball.direction = 1
-            if int(self.elapsed / interval) % 2:
-                ball.direction = -1
-                x = self.travel_width - x
+            if self.transpose:
+                x = (i + 1) * (
+                    2 * self.ball_radius + self.ball_margin
+                ) + self.rhythm_margin
+                y = int((self.elapsed % interval) / interval * self.travel_distance)
+                if int(self.elapsed / interval) % 2:
+                    ball.direction = -1
+                    y = self.travel_distance - y
+            else:
+                x = int((self.elapsed % interval) / interval * self.travel_distance)
+                y = (i + 1) * (
+                    2 * self.ball_radius + self.ball_margin
+                ) + self.rhythm_margin
+                if int(self.elapsed / interval) % 2:
+                    ball.direction = -1
+                    x = self.travel_distance - x
             if prev_direction != ball.direction:
                 ball.start_highlight()
                 ball.play_note()

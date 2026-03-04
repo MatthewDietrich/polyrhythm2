@@ -53,24 +53,11 @@ wheels = [
 ]
 
 [[package]]
-name = "obsws-python"
-version = "1.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "websocket-client" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/2f/624af34a5b0f09fbf858bf6743521a8626d712671ac49573e625ad1c97d3/obsws_python-1.8.0.tar.gz", hash = "sha256:e082894f80deb0836861fdc3c222e497308c8f66328da6075baba5b456a20971", size = 28727, upload-time = "2025-07-01T08:24:11.652Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/4b/537f3d372f065b2aeeac3812228066eb70f47436adf88aaacc94eb5fd4e1/obsws_python-1.8.0-py3-none-any.whl", hash = "sha256:537bde416e149b6f59e0b2f31761d4a40329feafec171bde6fc1346ab8516e28", size = 30819, upload-time = "2025-07-01T08:24:10.086Z" },
-]
-
-[[package]]
 name = "polr2"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "numpy" },
-    { name = "obsws-python" },
     { name = "pygame" },
     { name = "scipy" },
 ]
@@ -78,7 +65,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=2.4.2" },
-    { name = "obsws-python", specifier = ">=1.8.0" },
     { name = "pygame", specifier = ">=2.6.1" },
     { name = "scipy", specifier = ">=1.17.1" },
 ]
@@ -147,13 +133,4 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/52/52/e57eceff0e342a1f50e274264ed47497b59e6a4e3118808ee58ddda7b74a/scipy-1.17.1-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:a77cbd07b940d326d39a1d1b37817e2ee4d79cb30e7338f3d0cddffae70fcaa2", size = 37682317, upload-time = "2026-02-23T00:22:18.513Z" },
     { url = "https://files.pythonhosted.org/packages/11/2f/b29eafe4a3fbc3d6de9662b36e028d5f039e72d345e05c250e121a230dd4/scipy-1.17.1-cp314-cp314t-win_amd64.whl", hash = "sha256:eb092099205ef62cd1782b006658db09e2fed75bffcae7cc0d44052d8aa0f484", size = 37345327, upload-time = "2026-02-23T00:22:24.442Z" },
     { url = "https://files.pythonhosted.org/packages/07/39/338d9219c4e87f3e708f18857ecd24d22a0c3094752393319553096b98af/scipy-1.17.1-cp314-cp314t-win_arm64.whl", hash = "sha256:200e1050faffacc162be6a486a984a0497866ec54149a01270adc8a59b7c7d21", size = 25489165, upload-time = "2026-02-23T00:22:29.563Z" },
-]
-
-[[package]]
-name = "websocket-client"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2c/41/aa4bf9664e4cda14c3b39865b12251e8e7d239f4cd0e3cc1b6c2ccde25c1/websocket_client-1.9.0.tar.gz", hash = "sha256:9e813624b6eb619999a97dc7958469217c3176312b3a16a4bd1bc7e08a46ec98", size = 70576, upload-time = "2025-10-07T21:16:36.495Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/34/db/b10e48aa8fff7407e67470363eac595018441cf32d5e1001567a7aeba5d2/websocket_client-1.9.0-py3-none-any.whl", hash = "sha256:af248a825037ef591efbf6ed20cc5faa03d3b47b9e5a2230a529eeee1c1fc3ef", size = 82616, upload-time = "2025-10-07T21:16:34.951Z" },
 ]
