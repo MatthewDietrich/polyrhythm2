@@ -189,6 +189,23 @@ class App:
         pygame.mixer.quit()
         pygame.quit()
 
+    def _calculate_coordinates(
+        self, i: int, ball: Ball, interval: float
+    ) -> tuple[int, int]:
+        if self.transpose:
+            x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
+            y = int((self.elapsed % interval) / interval * self.travel_distance)
+            if int(self.elapsed / interval) % 2:
+                ball.direction = -1
+                y = self.travel_distance - y
+        else:
+            x = int((self.elapsed % interval) / interval * self.travel_distance)
+            y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
+            if int(self.elapsed / interval) % 2:
+                ball.direction = -1
+                x = self.travel_distance - x
+        return x, y
+
     def _draw(self) -> None:
         dt = self.clock.get_time()
         self.elapsed += dt
@@ -198,20 +215,7 @@ class App:
             interval = (i / 2 + 2) * self.base_duration
             prev_direction = ball.direction
             ball.direction = 1
-            if self.transpose:
-                x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
-                y = int((self.elapsed % interval) / interval * self.travel_distance)
-                if int(self.elapsed / interval) % 2:
-                    ball.direction = -1
-                    y = self.travel_distance - y
-            else:
-                x = int((self.elapsed % interval) / interval * self.travel_distance)
-                y = (i + 1) * (
-                    2 * self.ball_radius + self.ball_margin
-                ) + self.rhythm_margin
-                if int(self.elapsed / interval) % 2:
-                    ball.direction = -1
-                    x = self.travel_distance - x
+            x, y = self._calculate_coordinates(i, ball, interval)
             if prev_direction != ball.direction:
                 ball.start_highlight()
                 ball.play_note()
