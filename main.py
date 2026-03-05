@@ -19,6 +19,7 @@ WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 854
 IMAGES_DIR = Path("images")
 SOUNDS_DIR = Path("sounds")
+MODES = "default", "transpose", "dvd"
 
 
 def random_image() -> Path:
@@ -140,15 +141,18 @@ class App:
         )
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
-        self.transpose = bool(random.getrandbits(1))
-        if self.transpose:
-            self.ball_radius = min(
-                WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS
-            )
-        else:
-            self.ball_radius = min(
-                WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS
-            )
+        self.mode = random.choice(MODES)
+        match self.mode:
+            case "transpose":
+                self.ball_radius = min(
+                    WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS
+                )
+            case "dvd":
+                self.ball_radius = MAX_BALL_RADIUS
+            case _:
+                self.ball_radius = min(
+                    WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS
+                )
         self.ball_margin = self.ball_radius // 2
         self.balls = [
             Ball(
@@ -170,18 +174,28 @@ class App:
         for i, ball in enumerate(self.balls):
             ball.channel = pygame.mixer.Channel(i)
 
-        if self.transpose:
-            self.rhythm_margin = (
-                WINDOW_WIDTH
-                - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
-            ) / 2
-            self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
-        else:
-            self.rhythm_margin = (
-                WINDOW_HEIGHT
-                - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
-            ) / 2
-            self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
+        match self.mode:
+            case "transpose":
+                self.rhythm_margin = (
+                    WINDOW_WIDTH
+                    - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
+                ) / 2
+                self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
+            case "dvd":
+                self.dvd_speed = 200.0
+                max_x = WINDOW_WIDTH - self.ball_radius * 2
+                max_y = WINDOW_HEIGHT - self.ball_radius * 2
+                for ball in self.balls:
+                    ball.dvd_x = float(random.randrange(0, max_x))
+                    ball.dvd_y = float(random.randrange(0, max_y))
+                    ball.dvd_dx = random.choice([-1, 1])
+                    ball.dvd_dy = random.choice([-1, 1])
+            case _:
+                self.rhythm_margin = (
+                    WINDOW_HEIGHT
+                    - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
+                ) / 2
+                self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
         self.elapsed = 0
 
     def _exit(self) -> None:
@@ -192,23 +206,49 @@ class App:
     def _calculate_coordinates(
         self, i: int, ball: Ball, interval: float
     ) -> tuple[int, int]:
-        if self.transpose:
-            x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
-            y = int((self.elapsed % interval) / interval * self.travel_distance)
-            if int(self.elapsed / interval) % 2:
-                ball.direction = -1
-                y = self.travel_distance - y
-        else:
-            x = int((self.elapsed % interval) / interval * self.travel_distance)
-            y = (i + 1) * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
-            if int(self.elapsed / interval) % 2:
-                ball.direction = -1
-                x = self.travel_distance - x
+        match self.mode:
+            case "transpose":
+                x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
+                y = int((self.elapsed % interval) / interval * self.travel_distance)
+                if int(self.elapsed / interval) % 2:
+                    ball.direction = -1
+                    y = self.travel_distance - y
+            case "dvd":
+                max_x = WINDOW_WIDTH - self.ball_radius * 2
+                max_y = WINDOW_HEIGHT - self.ball_radius * 2
+                ball.dvd_x += ball.dvd_dx * self.dvd_speed * self.dt / 1000
+                ball.dvd_y += ball.dvd_dy * self.dvd_speed * self.dt / 1000
+                if ball.dvd_x <= 0:
+                    ball.dvd_x = 0
+                    ball.dvd_dx = 1
+                    ball.direction = -1
+                elif ball.dvd_x >= max_x:
+                    ball.dvd_x = max_x
+                    ball.dvd_dx = -1
+                    ball.direction = -1
+                if ball.dvd_y <= 0:
+                    ball.dvd_y = 0
+                    ball.dvd_dy = 1
+                    ball.direction = -1
+                elif ball.dvd_y >= max_y:
+                    ball.dvd_y = max_y
+                    ball.dvd_dy = -1
+                    ball.direction = -1
+                x = int(ball.dvd_x)
+                y = int(ball.dvd_y)
+            case _:
+                x = int((self.elapsed % interval) / interval * self.travel_distance)
+                y = (i + 1) * (
+                    2 * self.ball_radius + self.ball_margin
+                ) + self.rhythm_margin
+                if int(self.elapsed / interval) % 2:
+                    ball.direction = -1
+                    x = self.travel_distance - x
         return x, y
 
     def _draw(self) -> None:
-        dt = self.clock.get_time()
-        self.elapsed += dt
+        self.dt = self.clock.get_time()
+        self.elapsed += self.dt
         self.display_surf.fill(self.background_color)
 
         for i, ball in enumerate(self.balls):
