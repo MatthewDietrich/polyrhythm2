@@ -182,7 +182,6 @@ class App:
                 ) / 2
                 self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
             case "dvd":
-                self.dvd_speed = 200.0
                 max_x = WINDOW_WIDTH - self.ball_radius * 2
                 max_y = WINDOW_HEIGHT - self.ball_radius * 2
                 for ball in self.balls:
@@ -216,8 +215,9 @@ class App:
             case "dvd":
                 max_x = WINDOW_WIDTH - self.ball_radius * 2
                 max_y = WINDOW_HEIGHT - self.ball_radius * 2
-                ball.dvd_x += ball.dvd_dx * self.dvd_speed * self.dt / 1000
-                ball.dvd_y += ball.dvd_dy * self.dvd_speed * self.dt / 1000
+                speed = 200000.0 / interval
+                ball.dvd_x += ball.dvd_dx * speed * self.dt / 1000
+                ball.dvd_y += ball.dvd_dy * speed * self.dt / 1000
                 if ball.dvd_x <= 0:
                     ball.dvd_x = 0
                     ball.dvd_dx = 1
