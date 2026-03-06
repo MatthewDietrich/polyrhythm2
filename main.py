@@ -20,14 +20,16 @@ WINDOW_HEIGHT = 854
 IMAGES_DIR = Path("images")
 SOUNDS_DIR = Path("sounds")
 MODES = "default", "transpose", "dvd"
+IMAGES = list(IMAGES_DIR.iterdir())
+SOUNDS = list(SOUNDS_DIR.iterdir())
 
 
 def random_image() -> Path:
-    return random.choice(list(IMAGES_DIR.iterdir()))
+    return random.choice(IMAGES)
 
 
 def random_sound() -> Path:
-    return random.choice(list(SOUNDS_DIR.iterdir()))
+    return random.choice(SOUNDS)
 
 
 def scale_frequencies(intervals: tuple, octaves: int, start: float) -> list[float]:
@@ -53,24 +55,17 @@ def converge_color(
     b: tuple[int, int, int, int],
     step: Union[int, float],
 ) -> tuple[int, int, int, int]:
-    return (
-        converge(a[0], b[0], step),
-        converge(a[1], b[1], step),
-        converge(a[2], b[2], step),
-        converge(a[3], b[3], step),
-    )
+    return tuple(converge(ca, cb, step) for ca, cb in zip(a, b))
 
 
 def change_frequency(
     samples: np.ndarray, target_freq: float, base_freq: float
 ) -> np.ndarray:
-    semitones = 12 * np.log2(target_freq / base_freq)
-    factor = 2 ** (semitones / 12)
-    arr = np.array(
+    factor = target_freq / base_freq
+    return np.array(
         signal.resample(samples, int(len(samples) / factor)),
         dtype="int16",
     ).copy()
-    return arr
 
 
 def random_color() -> tuple[int, int, int, int]:
@@ -87,13 +82,12 @@ class Ball:
         self,
         radius: int,
         position: tuple[int, int],
-        direction: int,
         note: pygame.mixer.Sound,
         image: pygame.Surface,
+        channel: pygame.mixer.Channel,
     ) -> None:
         self.radius = radius
         self.position = position
-        self.direction = direction
         self.color = random_color()
         self.highlight_color = random_color()
         self.highlight_frames = 10
@@ -101,7 +95,7 @@ class Ball:
         self.draw_color = self.color
         self.image = pygame.transform.scale(image, (radius * 2, radius * 2))
         self.highlighted = False
-        self.channel = None
+        self.channel = channel
 
     def start_highlight(self) -> None:
         self.highlighted = True
@@ -116,8 +110,7 @@ class Ball:
             self.highlighted = False
 
     def play_note(self) -> None:
-        if self.channel is not None:
-            self.channel.play(self.note)
+        self.channel.play(self.note)
 
     def draw(self, display_surf: pygame.Surface) -> None:
         center = tuple(pos + self.radius for pos in self.position)
@@ -142,23 +135,39 @@ class App:
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
         self.mode = random.choice(MODES)
+        pygame.mixer.set_num_channels(len(frequencies))
+
         match self.mode:
             case "transpose":
-                self.ball_radius = min(
-                    WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS
+                self.ball_radius = int(
+                    min(WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS)
                 )
+                self.ball_margin = self.ball_radius // 2
+                self.rhythm_margin = (
+                    WINDOW_WIDTH
+                    - len(frequencies) * (2 * self.ball_radius + self.ball_margin)
+                ) / 2
+                self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
             case "dvd":
                 self.ball_radius = MAX_BALL_RADIUS
+                self.ball_margin = self.ball_radius // 2
+                self.max_x = WINDOW_WIDTH - self.ball_radius * 2
+                self.max_y = WINDOW_HEIGHT - self.ball_radius * 2
             case _:
-                self.ball_radius = min(
-                    WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS
+                self.ball_radius = int(
+                    min(WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS)
                 )
-        self.ball_margin = self.ball_radius // 2
+                self.ball_margin = self.ball_radius // 2
+                self.rhythm_margin = (
+                    WINDOW_HEIGHT
+                    - len(frequencies) * (2 * self.ball_radius + self.ball_margin)
+                ) / 2
+                self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
+
         self.balls = [
             Ball(
                 radius=self.ball_radius,
                 position=(0, 0),
-                direction=1,
                 note=pygame.sndarray.make_sound(
                     change_frequency(
                         self.base_sndarray,
@@ -167,29 +176,10 @@ class App:
                     )
                 ),
                 image=self.ball_image,
+                channel=pygame.mixer.Channel(i),
             )
-            for freq in frequencies
+            for i, freq in enumerate(frequencies)
         ]
-        pygame.mixer.set_num_channels(len(self.balls))
-        for i, ball in enumerate(self.balls):
-            ball.channel = pygame.mixer.Channel(i)
-
-        match self.mode:
-            case "transpose":
-                self.rhythm_margin = (
-                    WINDOW_WIDTH
-                    - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
-                ) / 2
-                self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
-            case "dvd":
-                self.max_x = WINDOW_WIDTH - self.ball_radius * 2
-                self.max_y = WINDOW_HEIGHT - self.ball_radius * 2
-            case _:
-                self.rhythm_margin = (
-                    WINDOW_HEIGHT
-                    - len(self.balls) * (2 * self.ball_radius + self.ball_margin)
-                ) / 2
-                self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
         self.elapsed = 0
 
     def _exit(self) -> None:
@@ -198,50 +188,52 @@ class App:
         pygame.quit()
 
     def _calculate_coordinates(
-        self, i: int, ball: Ball, interval: float
-    ) -> tuple[int, int]:
+        self, i: int, interval: float, prev_elapsed: int
+    ) -> tuple[tuple[int, int], bool]:
         match self.mode:
             case "transpose":
-                x = i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
+                x = int(
+                    i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
+                )
                 y = int((self.elapsed % interval) / interval * self.travel_distance)
-                if int(self.elapsed / interval) % 2:
-                    ball.direction = -1
+                segment = int(self.elapsed / interval) % 2
+                if segment:
                     y = self.travel_distance - y
+                bounced = segment != int(prev_elapsed / interval) % 2
             case "dvd":
                 x_interval = interval
                 y_interval = interval * 2 / 3
-                prev_elapsed = self.elapsed - self.dt
                 x = int((self.elapsed % x_interval) / x_interval * self.max_x)
                 if int(self.elapsed / x_interval) % 2:
                     x = self.max_x - x
                 y = int((self.elapsed % y_interval) / y_interval * self.max_y)
                 if int(self.elapsed / y_interval) % 2:
                     y = self.max_y - y
-                if int(self.elapsed / x_interval) != int(prev_elapsed / x_interval):
-                    ball.direction = -1
-                if int(self.elapsed / y_interval) != int(prev_elapsed / y_interval):
-                    ball.direction = -1
+                bounced = int(self.elapsed / x_interval) != int(
+                    prev_elapsed / x_interval
+                ) or int(self.elapsed / y_interval) != int(prev_elapsed / y_interval)
             case _:
                 x = int((self.elapsed % interval) / interval * self.travel_distance)
-                y = (i + 1) * (
-                    2 * self.ball_radius + self.ball_margin
-                ) + self.rhythm_margin
-                if int(self.elapsed / interval) % 2:
-                    ball.direction = -1
+                y = int(
+                    (i + 1) * (2 * self.ball_radius + self.ball_margin)
+                    + self.rhythm_margin
+                )
+                segment = int(self.elapsed / interval) % 2
+                if segment:
                     x = self.travel_distance - x
-        return x, y
+                bounced = segment != int(prev_elapsed / interval) % 2
+        return (x, y), bounced
 
     def _draw(self) -> None:
-        self.dt = self.clock.get_time()
-        self.elapsed += self.dt
+        dt = self.clock.get_time()
+        prev_elapsed = self.elapsed
+        self.elapsed += dt
         self.display_surf.fill(self.background_color)
 
         for i, ball in enumerate(self.balls):
             interval = (i / 2 + 2) * self.base_duration
-            prev_direction = ball.direction
-            ball.direction = 1
-            x, y = self._calculate_coordinates(i, ball, interval)
-            if prev_direction != ball.direction:
+            (x, y), bounced = self._calculate_coordinates(i, interval, prev_elapsed)
+            if bounced:
                 ball.start_highlight()
                 ball.play_note()
             ball.next_highlight()
