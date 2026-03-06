@@ -182,13 +182,8 @@ class App:
                 ) / 2
                 self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
             case "dvd":
-                max_x = WINDOW_WIDTH - self.ball_radius * 2
-                max_y = WINDOW_HEIGHT - self.ball_radius * 2
-                for ball in self.balls:
-                    ball.dvd_x = float(random.randrange(0, max_x))
-                    ball.dvd_y = float(random.randrange(0, max_y))
-                    ball.dvd_dx = random.choice([-1, 1])
-                    ball.dvd_dy = random.choice([-1, 1])
+                self.max_x = WINDOW_WIDTH - self.ball_radius * 2
+                self.max_y = WINDOW_HEIGHT - self.ball_radius * 2
             case _:
                 self.rhythm_margin = (
                     WINDOW_HEIGHT
@@ -213,29 +208,19 @@ class App:
                     ball.direction = -1
                     y = self.travel_distance - y
             case "dvd":
-                max_x = WINDOW_WIDTH - self.ball_radius * 2
-                max_y = WINDOW_HEIGHT - self.ball_radius * 2
-                speed = 200000.0 / interval
-                ball.dvd_x += ball.dvd_dx * speed * self.dt / 1000
-                ball.dvd_y += ball.dvd_dy * speed * self.dt / 1000
-                if ball.dvd_x <= 0:
-                    ball.dvd_x = 0
-                    ball.dvd_dx = 1
+                x_interval = interval
+                y_interval = interval * 2 / 3
+                prev_elapsed = self.elapsed - self.dt
+                x = int((self.elapsed % x_interval) / x_interval * self.max_x)
+                if int(self.elapsed / x_interval) % 2:
+                    x = self.max_x - x
+                y = int((self.elapsed % y_interval) / y_interval * self.max_y)
+                if int(self.elapsed / y_interval) % 2:
+                    y = self.max_y - y
+                if int(self.elapsed / x_interval) != int(prev_elapsed / x_interval):
                     ball.direction = -1
-                elif ball.dvd_x >= max_x:
-                    ball.dvd_x = max_x
-                    ball.dvd_dx = -1
+                if int(self.elapsed / y_interval) != int(prev_elapsed / y_interval):
                     ball.direction = -1
-                if ball.dvd_y <= 0:
-                    ball.dvd_y = 0
-                    ball.dvd_dy = 1
-                    ball.direction = -1
-                elif ball.dvd_y >= max_y:
-                    ball.dvd_y = max_y
-                    ball.dvd_dy = -1
-                    ball.direction = -1
-                x = int(ball.dvd_x)
-                y = int(ball.dvd_y)
             case _:
                 x = int((self.elapsed % interval) / interval * self.travel_distance)
                 y = (i + 1) * (
