@@ -1,4 +1,5 @@
 import random
+from enum import Enum
 from pathlib import Path
 from typing import Union
 
@@ -19,9 +20,15 @@ WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 854
 IMAGES_DIR = Path("images")
 SOUNDS_DIR = Path("sounds")
-MODES = "default", "transpose", "dvd"
 IMAGES = list(IMAGES_DIR.iterdir())
 SOUNDS = list(SOUNDS_DIR.iterdir())
+
+
+class Mode(Enum):
+    DEFAULT = "default"
+    TRANSPOSE = "transpose"
+    RIBBON = "ribbon"
+    ZIGZAG = "zigzag"
 
 
 def random_image() -> Path:
@@ -134,11 +141,11 @@ class App:
         )
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
-        self.mode = random.choice(MODES)
+        self.mode = random.choice(list(Mode))
         pygame.mixer.set_num_channels(len(frequencies))
 
         match self.mode:
-            case "transpose":
+            case Mode.TRANSPOSE:
                 self.ball_radius = int(
                     min(WINDOW_WIDTH / len(frequencies) / 2.5, MAX_BALL_RADIUS)
                 )
@@ -148,12 +155,12 @@ class App:
                     - len(frequencies) * (2 * self.ball_radius + self.ball_margin)
                 ) / 2
                 self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
-            case "dvd":
+            case Mode.RIBBON:
                 self.ball_radius = MAX_BALL_RADIUS
                 self.ball_margin = self.ball_radius // 2
                 self.max_x = WINDOW_WIDTH - self.ball_radius * 2
                 self.max_y = WINDOW_HEIGHT - self.ball_radius * 2
-            case _:
+            case Mode.DEFAULT:
                 self.ball_radius = int(
                     min(WINDOW_HEIGHT / len(frequencies) / 2.5, MAX_BALL_RADIUS)
                 )
@@ -163,6 +170,11 @@ class App:
                     - len(frequencies) * (2 * self.ball_radius + self.ball_margin)
                 ) / 2
                 self.travel_distance = WINDOW_WIDTH - self.ball_radius * 2
+            case Mode.ZIGZAG:
+                self.ball_radius = MAX_BALL_RADIUS
+                self.ball_margin = self.ball_radius // 2
+                self.travel_distance = WINDOW_HEIGHT - self.ball_radius * 2
+                self.max_x = WINDOW_WIDTH - self.ball_radius * 2
 
         self.balls = [
             Ball(
@@ -191,7 +203,7 @@ class App:
         self, i: int, interval: float, prev_elapsed: int
     ) -> tuple[tuple[int, int], bool]:
         match self.mode:
-            case "transpose":
+            case Mode.TRANSPOSE:
                 x = int(
                     i * (2 * self.ball_radius + self.ball_margin) + self.rhythm_margin
                 )
@@ -200,7 +212,7 @@ class App:
                 if segment:
                     y = self.travel_distance - y
                 bounced = segment != int(prev_elapsed / interval) % 2
-            case "dvd":
+            case Mode.RIBBON:
                 x_interval = interval
                 y_interval = interval * 2 / 3
                 x = int((self.elapsed % x_interval) / x_interval * self.max_x)
@@ -212,7 +224,7 @@ class App:
                 bounced = int(self.elapsed / x_interval) != int(
                     prev_elapsed / x_interval
                 ) or int(self.elapsed / y_interval) != int(prev_elapsed / y_interval)
-            case _:
+            case Mode.DEFAULT:
                 x = int((self.elapsed % interval) / interval * self.travel_distance)
                 y = int(
                     (i + 1) * (2 * self.ball_radius + self.ball_margin)
@@ -222,6 +234,21 @@ class App:
                 if segment:
                     x = self.travel_distance - x
                 bounced = segment != int(prev_elapsed / interval) % 2
+            case Mode.ZIGZAG:
+                interval = interval * 8
+                segment = int(self.elapsed / interval) % 2
+                prev_segment = int(prev_elapsed / interval) % 2
+                t = (self.elapsed % interval) / interval
+                t_prev = (prev_elapsed % interval) / interval
+                if segment:
+                    t = 1 - t
+                if prev_segment:
+                    t_prev = 1 - t_prev
+                y = int(t * self.travel_distance)
+                x_step = int(8 * t)
+                x_t = (8 * t) % 1.0
+                x = int((1 - x_t if x_step % 2 else x_t) * self.max_x)
+                bounced = segment != prev_segment or x_step != int(8 * t_prev)
         return (x, y), bounced
 
     def _draw(self) -> None:
