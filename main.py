@@ -1,3 +1,5 @@
+import argparse
+import argparse
 import random
 from enum import Enum
 from pathlib import Path
@@ -127,7 +129,7 @@ class Ball:
 
 
 class App:
-    def __init__(self, frequencies: list[float]) -> None:
+    def __init__(self, frequencies: list[float], mode: Mode | None = None) -> None:
         pygame.init()
         pygame.mixer.init(frequency=44100, size=-16, channels=32)
         self.base_sndarray = pygame.sndarray.array(
@@ -141,7 +143,7 @@ class App:
         )
         self.base_duration = random.randrange(MIN_DURATION, MAX_DURATION)
         self.ball_image = pygame.image.load(random_image()).convert_alpha()
-        self.mode = random.choice(list(Mode))
+        self.mode = Mode(mode) if mode is not None else random.choice(list(Mode))
         pygame.mixer.set_num_channels(len(frequencies))
 
         match self.mode:
@@ -280,11 +282,19 @@ class App:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser("polyrhythm")
+    parser.add_argument(
+        "--mode",
+        choices=[m.value for m in Mode],
+        type=str.lower,
+        default=None,
+    )
+    args = parser.parse_args()
     scale = random.choice(SCALES)
     starting_frequency = random.choice(scale_frequencies(scale, 2, BASE_FREQUENCY / 2))
     frequencies = scale_frequencies(scale, random.randrange(1, 4), starting_frequency)
     frequencies = random.sample(frequencies, random.randrange(5, len(frequencies)))
-    App(frequencies).run()
+    App(frequencies, mode=args.mode).run()
 
 
 if __name__ == "__main__":
